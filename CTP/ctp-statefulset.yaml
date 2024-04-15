@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: ctp
+  namespace: parasoft-ns
+  labels:
+    app: ctp
+spec:
+  serviceName: ctp-service
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ctp
+  template:
+    metadata:
+      labels:
+        app: ctp
+    spec:
+      securityContext:
+        runAsUser: 1000
+      serviceAccountName: parasoft-account
+      containers:
+        - name: ctp
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault    
+          image: parasoft/ctp:latest
+          ports:
+            - containerPort: 8080
+          command: [ "/bin/bash", "-c" ]
+          args:
+            - cd ctp/webapps/em/WEB-INF/classes/META-INF/spring/ &&
+              rm database.properties &&
+              cd /usr/local/parasoft &&
+              ./entrypoint.sh
+          volumeMounts:
+            - name: ctp-config-storage
+              mountPath: /usr/local/parasoft/ctp/webapps/em/config/db_config.xml
+              subPath: db_config.xml
+            - name: ctp-exports-storage
+              mountPath: /usr/local/parasoft/exports
+            - name: ctp-hsqldb-storage
+              mountPath: /usr/local/parasoft/ctp/hsqldb
+            - name: ctp-mariadbadapter-storage
+              mountPath: /usr/local/parasoft/ctp/webapps/em/WEB-INF/lib/mariadb-java-client-3.3.2.jar
+              subPath: mariadb-java-client-3.3.2.jar
+          env:
+          # === USE BELOW TO CONFIGURE ENVIRONMENT VARIABLES ===
+          # Configures CTP to connect to license server at the specified base URL
+          - name: LICENSE_SERVER_URL
+            value: http://apps.laboratorytechnologylatam.com:8888
+          # Configures CTP to use basic authentication when connecting to license server
+          - name: LICENSE_SERVER_AUTH_ENABLED
+            value: "true"
+          # Configures CTP to connect to license server as the specified user
+          - name: admin
+            value: admin
+          - name: USAGE_DATA
+            value: "false"
+          - name: ACCEPT_EULA
+            value: "true"
+          - name: CATALINA_OPTS
+            value: "-Dparasoft.cloudvm=true
+                    -Dparasoft.cloudvm.config=Kubernetes"
+          - name: PARASOFT_POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: PARASOFT_POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+      volumes:
+        - name: ctp-config-storage
+          persistentVolumeClaim:
+            claimName: ctp-config-pvc
+        - name: ctp-exports-storage
+          persistentVolumeClaim:
+            claimName: ctp-exports-pvc
+        - name: ctp-hsqldb-storage
+          persistentVolumeClaim:
+            claimName: ctp-hsqldb-pvc
+        - name: ctp-mariadbadapter-storage
+          persistentVolumeClaim:
+            claimName: ctp-mariadbadapter-pvc

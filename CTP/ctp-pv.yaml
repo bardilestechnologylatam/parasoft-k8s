@@ -1,0 +1,64 @@
+# ==== Persistent Volume to Mount db_config.xml ====
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: ctp-config-storage
+  namespace: parasoft-ns
+spec:
+  capacity:
+    storage: 1Gi
+  volumeMode: Filesystem
+  accessModes:
+  - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: local-storage
+  hostPath:
+    path: /home/docker/vol/ctp/ctp_config
+---
+# ==== PersistentVolumeClaim for db_config.xml ====
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ctp-config-pvc
+  namespace: parasoft-ns
+spec:
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: local-storage
+  resources:
+    requests:
+      storage: 1Gi
+  volumeName: ctp-config-storage
+---
+# ==== Persistent Volume for Export Storage ====
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: ctp-exports-storage
+  namespace: parasoft-ns
+spec:
+  capacity:
+    storage: 3Gi
+  volumeMode: Filesystem
+  accessModes:
+  - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: local-storage
+  hostPath:
+    path: /home/docker/vol/ctp/ctp_export
+ 
+---
+# ==== PersistentVolumeClaim for CTP exports folder ====
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ctp-exports-pvc
+  namespace: parasoft-ns
+spec:
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: local-storage
+  resources:
+    requests:
+      storage: 3Gi
+  volumeName: ctp-exports-storage

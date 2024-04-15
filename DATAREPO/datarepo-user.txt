@@ -1,0 +1,2 @@
+
+kubectl create secret generic datarepo-login --from-literal=username=admin --from-literal=password=admin

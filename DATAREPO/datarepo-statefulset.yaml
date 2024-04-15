@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: datarepo
+  namespace: parasoft-ns
+  labels:
+    tag: datarepo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      tag: datarepo
+  serviceName: datarepo
+  template:
+    metadata:
+      labels:
+        tag: datarepo
+    spec:
+      volumes:
+      - name: datarepo-volume
+        persistentVolumeClaim:
+          claimName: datarepo-pvc
+      containers:
+      - name: datarepo
+        image: mongo:latest
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+        - name: datarepo-volume
+          mountPath: /data/db
+    # To run the Data Repository server with SSL, uncomment the following lines
+    #    - name: datarepo-sslcert-file
+    #      mountPath: /etc/sslCert.pem
+    #      subPath: sslCert.pem
+    #    command: ["mongod", "--ipv6", "--bind_ip_all", "--sslMode", "requireSSL", "--sslPEMKeyFile", "/etc/sslCert.pem", "--auth"]
+    #    startupProbe:
+    #      exec:
+    # To run the Data Repository server with SSL or not, choose one of the following lines to uncomment
+    #        command: ["/bin/sh", "-c" "mongosh --host 127.0.0.1 --port 27017 --ssl --sslAllowInvalidCertificates --quiet test --eval 'quit(0)'"]
+    #        command: ["/bin/sh", "-c" "mongosh --host 127.0.0.1 --port 27017 --quiet test --eval 'quit(0)'"]
+    #      initialDelaySeconds: 30
+    #      periodSeconds: 30
+    #      timeoutSeconds: 10
+    #      failureThreshold: 3
+    #    livenessProbe:
+    #      exec:
+    # To run the Data Repository server with SSL or not, choose one of the following lines to uncomment
+    #        command: ["/bin/sh", "-c" "mongosh --host 127.0.0.1 --port 27017 --ssl --sslAllowInvalidCertificates --quiet test --eval 'quit(0)'"]
+    ##        command: ["/bin/sh", "-c" "mongosh --host 127.0.0.1 --port 27017 --quiet test --eval 'quit(0)'"]
+    #      initialDelaySeconds: 30
+    #      periodSeconds: 30
+    #      timeoutSeconds: 10
+        env:
+        - name: MONGO_INITDB_ROOT_USERNAME
+          value: admin
+          # valueFrom:
+          #   secretKeyRef:
+          #     name: datarepo-login
+          #     key: username
+          #     optional: false
+        - name: MONGO_INITDB_ROOT_PASSWORD
+          value: admin
+          # valueFrom:
+          #   secretKeyRef:
+          #     name: datarepo-login
+          #     key: password
+          #     optional: false

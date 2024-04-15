@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: ctp-metrics
+  namespace: parasoft-ns
+spec:
+  replicas: 1
+  serviceName: ctp-metrics
+  selector:
+    matchLabels:
+      app: ctp-metrics
+  template:
+    metadata:
+      labels:
+        app: ctp-metrics
+    spec:
+      containers:
+      - name: ctp-metrics
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: [ "ALL" ]
+          seccompProfile:
+            type: RuntimeDefault
+        image: ctp-metrics:latest
+        env:
+        - name: MARIADB_ROOT_PASSWORD
+          value: "root"
+        ports:
+        - containerPort: 5000
+          name: mariadb
+      securityContext:
+        runAsUser: 1000
+
+

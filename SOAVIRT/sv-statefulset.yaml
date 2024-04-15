@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: soavirt
+  namespace: parasoft-ns
+  labels:
+    tag: soavirt
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      tag: soavirt
+  serviceName: soavirt
+  template:
+    metadata:
+      labels:
+        tag: soavirt
+    spec:
+      securityContext:
+        runAsUser: 1000
+      serviceAccountName: parasoft-account
+      volumes:
+      - name: soavirt-pv
+        persistentVolumeClaim:
+          claimName: soavirt-pvc
+      - name: soavirt-config
+        configMap:
+          name: soavirt-config
+      - name: soavirt-config-tls
+        configMap:
+          name: soavirt-config-tls
+      containers:
+      - name: soavirt
+        image: parasoft/soavirt-server
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: ["ALL"]
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - name: soavirt-pv
+          mountPath: /usr/local/parasoft/soavirt/webapps/ROOT/workspace
+        - name: soavirt-config
+          mountPath: /usr/local/parasoft/soavirt/webapps/config.properties
+          subPath: config.properties
+        - name: soavirt-config-tls
+          mountPath: /usr/lib/jvm/jre-11-openjdk/conf/security/java2.security
+          subPath: java2.security
+        ports:
+        - name: http
+          containerPort: 9080
+        - name: events
+          containerPort: 9617
+        - name: statistics
+          containerPort: 9618
+        # startupProbe:
+        #   httpGet:
+        #     path: /soavirt/api/v6/healthcheck
+        #     port: 9080
+        #   initialDelaySeconds: 30
+        #   periodSeconds: 30
+        #   timeoutSeconds: 30
+        #   failureThreshold: 3
+        # livenessProbe:
+        #   httpGet:
+        #     path: /soavirt/api/v6/healthcheck
+        #     port: 9080
+        #   initialDelaySeconds: 30
+        #   periodSeconds: 30
+        #   timeoutSeconds: 30
+        env:
+        - name: CATALINA_OPTS
+          value: "-Dparasoft.auto.deploy.new=false
+                   -Dparasoft.event.monitoring.broker.port=9617
+                   -Dparasoft.server.statistics.broker.port=9618
+                   -Dparasoft.cloudvm=true
+                   -Dparasoft.cloudvm.config=Kubernetes"
+        - name: PARASOFT_POD_NAME           #REQUIRED
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: PARASOFT_POD_NAMESPACE      #REQUIRED
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace

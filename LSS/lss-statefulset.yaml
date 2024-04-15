@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: lss
+  namespace: parasoft-ns
+  labels:
+    app: LSS
+spec:
+  selector:
+    matchLabels:
+      app: LSS
+  serviceName: lss-service
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: LSS
+    spec:
+      volumes:
+      - name: lss-data
+#        nfs:
+#          server: NFS_SERVER_HOST
+#          path: /lss/
+        persistentVolumeClaim:
+          claimName: lss-pvc
+# Uncomment section below if you are setting up a custom keystore; you will also need to uncomment out the associated volumeMounts below
+#      - name: keystore-cfgmap-volume
+#        configMap:
+#          name: keystore-cfgmap
+      securityContext:
+        runAsUser: 1000
+      containers:
+      - name: lss-server
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: [ "ALL" ]
+          seccompProfile:
+            type: RuntimeDefault
+        image: parasoft/lss
+        imagePullPolicy: Always
+        env:
+        - name: PARASOFT_POD_NAME               #REQUIRED, DO NOT CHANGE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: PARASOFT_POD_NAMESPACE          #REQUIRED, DO NOT CHANGE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+# To inject JVM arguments into the container, specify the "env" property as in the example below, which injects LSS_JAVA_OPTS
+#        - name: LSS_JAVA_OPTS
+#          value: "-Dparasoft.use.license.v2=true"
+        ports:
+        - containerPort: 8080
+          name: "http-server"
+#        - containerPort: 8443
+#          name: "https-server"
+        volumeMounts:
+        - name: lss-data
+          mountPath: "/usr/local/parasoft/license-server/data"
+# Uncomment section below if you are setting up a custom keystore. Note that updates made to these files will not be reflected inside the container once it's been deployed; you will need to restart the container for it to contain any updates.
+#        - name: keystore-cfgmap-volume
+#          mountPath: "/usr/local/parasoft/license-server/app/tomcat/conf/.keystore"
+#          subPath: keystore
+#        - name: keystore-cfgmap-volume
+#          mountPath: "/usr/local/parasoft/license-server/app/tomcat/conf/server.xml"
+#          subPath: server-config
+# To prevent liveness probe failures on environments with low or overly taxed RAM/CPU, we recommend increasing the timeout seconds
+        livenessProbe:
+          exec:
+            command:
+            - healthcheck.sh
+          initialDelaySeconds: 120
+          periodSeconds: 60
+          timeoutSeconds: 30
+          failureThreshold: 5
+      restartPolicy: Always
+      serviceAccountName: parasoft-account

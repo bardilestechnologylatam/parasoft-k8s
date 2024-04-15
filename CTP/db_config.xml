@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <db_config>
+        <connection>
+            <url>jdbc:mariadb://192.168.49.2:30360/</url>
+            <username>root</username>
+            <password>root</password>
+        </connection>
+    </db_config>
+</configuration>
